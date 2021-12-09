@@ -1,0 +1,27 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles/main.css') }}">
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.ico') }}" />
+        <title>Home</title>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>Home</h1>
+            </div>
+            <div class="content">
+                <p>
+                    <form action="{{ url_for('index') }}" method="POST">
+                        <textarea name="input" rows="10" cols="50">{{ input }}</textarea>
+                        <br>
+                        <input type="submit" value="Submit">
+                </p>
+                <p>Your query was: {{ query }}</p>
+                <p>Answer is: {{ answer }}</p>
+                <p>Paragraph is: {{ start }}<mark>{{ marked }}</mark>{{ end }}</p>
+            </div>
+        </div>
+    </body>
+</html>
