@@ -1,0 +1,43 @@
+body {
+    font-size: 18px;
+}
+
+.container {
+    margin-top: 3vw;
+    margin-left: 3vw;
+    width: 90vw;
+}
+
+.searchbar .textArea {
+    flex: 1;
+    padding: 5px;
+    border: 2px solid #2d6fd3;
+    border-radius: 5px;
+    width: 30vw;
+    color: #808080;
+    font-size: 18px;
+}
+
+.searchbar .textArea:focus, .searchbar .textArea:focus {
+    border: 2px solid #168194;
+    border-radius: 5px;
+    color: #000000;
+    outline: none;
+    font-size: 18px;
+}
+
+.searchbar .searchButton {
+    flex: 1;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 18px;
+}
+
+.applet mark {
+    background: linear-gradient(90deg, rgba(255,255,255,1) 10%, rgb(75, 102, 177) 50%, rgba(255,255,255,0) 90%)!important;
+}
+
+.applet a {
+    color: #2d6fd3;
+}

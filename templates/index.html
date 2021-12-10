@@ -4,23 +4,33 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="{{ url_for('static', filename='styles/main.css') }}">
         <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.ico') }}" />
-        <title>Home</title>
+        <title>Réponse à tout</title>
     </head>
     <body>
         <div class="container">
             <div class="header">
-                <h1>Home</h1>
+                <h1>Réponse à tout</h1>
+                <p>Ce programme répond automatiquement à une question simple (pas de double interrogation, négation dans la question, etc), en utilisant un modèle BERT et Wikipédia.</p>
             </div>
-            <div class="content">
+            <div class="applet">
                 <p>
                     <form action="{{ url_for('index') }}" method="POST">
-                        <textarea name="input" rows="10" cols="50">{{ input }}</textarea>
-                        <br>
-                        <input type="submit" value="Submit">
+                        <div class="searchbar">
+                            <input type="text" name="input" class="textArea" autocomplete="off" placeholder="Ex: quand est mort Charlie Chaplin ?">{{ input }}</textarea>
+                            <input type="submit" value="Rechercher" class="searchButton">
+                        </div>
+                    </form>
                 </p>
-                <p>Your query was: {{ query }}</p>
-                <p>Answer is: {{ answer }}</p>
-                <p>Paragraph is: {{ start }}<mark>{{ marked }}</mark>{{ end }}</p>
+                
+                <p><b>Question : </b>{{ query }}</p>
+                <p><b>Réponse : </b>{{ answer }}</p>
+                <p><b>Score : </b>{{ score }}</p>
+                <p><b>Wikipédia : </b>{{ start }}<mark class="highlighted">{{ marked }}</mark>{{ end }}</p>
+                {% if error is defined %}
+                    <p><b>Erreur : </b>{{ error }}</p>
+                {% else %}
+                    <p><b>URL : </b><a href={{ url }} target="_blank">{{ url }}</a></p>
+                {% endif %}
             </div>
         </div>
     </body>

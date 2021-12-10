@@ -1,18 +1,40 @@
 #!/usr/bin/env python3
+import logging
 import os
+import sys
+from logging import handlers
 from os.path import abspath, dirname, isdir, join
 from typing import Optional
 
 import unidecode
 import wikipedia
-from flask import Flask, render_template, request
+from flask import Flask, make_response, render_template, request
 from transformers import AutoModelForQuestionAnswering, AutoTokenizer, pipeline
 
 app = Flask(__name__)
-models_cache_dir = join(dirname(abspath(__file__)), "models")
-if not isdir(models_cache_dir):
-    os.mkdir(models_cache_dir)
+
+root_path = dirname(abspath(__file__))
+models_cache_dir = join(root_path, "models")
+logs_dir = join(root_path, "logs")
+for folder in [models_cache_dir, logs_dir]:
+    if not isdir(folder):
+        os.mkdir(folder)
+
 wikipedia.set_lang("fr")
+
+# Get a logger
+log_file_path = os.path.join(os.path.dirname(__file__), "logs", "requests.log")
+logger = logging.getLogger(__file__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+# File handler
+handler = handlers.RotatingFileHandler(log_file_path, maxBytes=(1048576 * 5), backupCount=7)
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+# Stdout handler
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
 def get_wiki_summary(about: str) -> Optional[str]:
@@ -42,45 +64,50 @@ def get_wiki_summary(about: str) -> Optional[str]:
         wiki_page_name = possible_pages[0]
     # Get summary data, desambiguate if needed
     try:
-        page_data = wikipedia.page(wiki_page_name, auto_suggest=False).summary
+        page_data = wikipedia.page(wiki_page_name, auto_suggest=False)
+
     except wikipedia.exceptions.DisambiguationError as e:
-        page_data = wikipedia.page(wiki_page_name, auto_suggest=True).summary
-    return page_data
+        page_data = wikipedia.page(wiki_page_name, auto_suggest=True)
+    return page_data.url, page_data.summary
 
 
 # Create a question answering Huggingface pipeline
-qa_tokenizer = AutoTokenizer.from_pretrained("etalab-ia/camembert-base-squadFR-fquad-piaf", cache_dir=models_cache_dir)
-qa_model = AutoModelForQuestionAnswering.from_pretrained("etalab-ia/camembert-base-squadFR-fquad-piaf",
-                                                         cache_dir=models_cache_dir)
+qa_tokenizer = AutoTokenizer.from_pretrained(models_cache_dir, local_files_only=True)
+qa_model = AutoModelForQuestionAnswering.from_pretrained(models_cache_dir, local_files_only=True)
 question_answering = pipeline("question-answering", model=qa_model, tokenizer=qa_tokenizer)
 
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    context = {}
     default_value = "Quand est mort Charlie Chaplin ?"
     question = request.form.get('input',
                                 default_value) if request.form.get('input', default_value) != "" else default_value
-    context["query"] = question
+    logger.info(f"Received question: {question}")
+    context = {
+        "query": question,
+    }
 
     # Get summary
-    summary = get_wiki_summary(about=question)
+    try:
+        url, summary = get_wiki_summary(about=question)
+    except TypeError:
+        summary = None
 
     # Call the pipeline
     if summary is not None:
-        answer = question_answering(question, summary)
-        start = summary[:answer['start']]
-        end = summary[answer['end']:]
-        marked = summary[answer['start']:answer['end']]
+        pipeline_answer = question_answering(question, summary)
+        context["answer"] = pipeline_answer["answer"]
+        context["score"] = round(pipeline_answer["score"], 3)
+        context["start"] = summary[:pipeline_answer["start"] - 40]
+        context["end"] = summary[pipeline_answer["end"] + 40:]
+        context["marked"] = summary[pipeline_answer["start"] - 40:pipeline_answer["end"] + 40]
+        context["url"] = url
     else:
-        answer = None
+        context["error"] = "Pas de données trouvées sur Wikipédia."
 
-    context["start"] = start
-    context["end"] = end
-    context["marked"] = marked
-    context["answer"] = answer
-
-    html_template = render_template("index.html", **context)
+    headers = {'Content-Type': 'text/html'}
+    html_template = make_response(render_template("index.html", **context), 200, headers)
+    html_template.mimetype = "text/html"
 
     return html_template
 

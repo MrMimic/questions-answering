@@ -5,6 +5,8 @@ FROM python:3.9-slim
 # Allow statements and log messages to immediately appear in the Knative logs
 ENV PYTHONUNBUFFERED True
 
+RUN mkdir /app
+
 # Copy local code to the container image.
 ENV APP_HOME /app
 
@@ -16,6 +18,13 @@ COPY . ./
 
 # Install production dependencies.
 RUN pip install -r requirements.txt
+
+# Download model
+RUN  python -c 'from transformers import AutoModelForQuestionAnswering, AutoTokenizer; \
+    token = AutoTokenizer.from_pretrained("etalab-ia/camembert-base-squadFR-fquad-piaf", cache_dir="./models"); \
+    token.save_pretrained("./models"); \
+    model = AutoModelForQuestionAnswering.from_pretrained("etalab-ia/camembert-base-squadFR-fquad-piaf", cache_dir="./models"); \
+    model.save_pretrained("./models")'
 
 # Run the web service on container startup. Here we use the gunicorn
 # webserver, with one worker process and 8 threads.
